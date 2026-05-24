@@ -1,0 +1,219 @@
+{
+  "query_metadata": {
+    "query": "give me info about pigeon, where do they live",
+    "top_k": 8,
+    "bird_type": "pigeon",
+    "schema_version": "1.0"
+  },
+  "results": [
+    {
+      "species_id": "Streptopelia orientalis",
+      "common_name": "Eurasian Collared-Dove",
+      "family": "Columbidae",
+      "order": "Columbiformes",
+      "habitat_profile": {
+        "type_of_forest": "woodland",
+        "habitat_density": {
+          "level": 3,
+          "label": "semi-open or open habitat"
+        },
+        "tree_preference": null,
+        "environment_type": "terrestrial",
+        "elevation_range": {
+          "min_m": null,
+          "max_m": null,
+          "note": "unknown, adaptable to various altitudinal zones"
+        }
+      },
+      "diet": {
+        "trophic_niche": "omnivore",
+        "primary_food": ["seeds", "grains", "mixed vegetation"],
+        "feeding_style": "ground foraging"
+      },
+      "seasonal_presence": {
+        "resident_type": "year-round",
+        "months_observed": [
+          "January","February","March","April","May","June",
+          "July","August","September","October","November","December"
+        ],
+        "peak_season": null
+      },
+      "climate_profile": {
+        "climate_zone": "subtropical to temperate",
+        "migration_strategy": "sedentary",
+        "migration_score": 1.0
+      },
+      "distribution": {
+        "country": "Nepal",
+        "provinces": [
+          "Bagmati","Gandaki","Karnali",
+          "Lumbini","Madhesh","Province 1","Sudurpaschim"
+        ],
+        "total_localities": 2991,
+        "bounding_box": {
+          "lat_min": 26.4642,
+          "lat_max": 30.2409,
+          "lon_min": 80.0842,
+          "lon_max": 88.1812
+        }
+      },
+      "observation_stats": {
+        "total_sightings": 12549,
+        "total_individuals": 3587,
+        "unique_observers": 1131,
+        "first_recorded": 1973,
+        "last_recorded": 2024
+      },
+      "physical": {
+        "body_mass_grams": 232.9,
+        "lifestyle": "insessorial"
+      },
+      "source_file": "Streptopelia orientalis",
+      "confidence_score": 0.7247
+    },
+    {
+      "species_id": "Streptopelia tranquebarica",
+      "common_name": "Red Turtle-Dove",
+      "family": "Columbidae",
+      "order": "Columbiformes",
+      "habitat_profile": {
+        "type_of_forest": "woodland",
+        "habitat_density": {
+          "level": 2,
+          "label": "semi-open habitat"
+        },
+        "tree_preference": null,
+        "environment_type": "terrestrial",
+        "elevation_range": {
+          "min_m": null,
+          "max_m": null,
+          "note": "unknown"
+        }
+      },
+      "diet": {
+        "trophic_niche": "granivore",
+        "primary_food": ["seeds", "grains"],
+        "feeding_style": "ground foraging"
+      },
+      "seasonal_presence": {
+        "resident_type": "year-round",
+        "months_observed": [
+          "January","February","March","April","May","June",
+          "July","August","September","October","November","December"
+        ],
+        "peak_season": null
+      },
+      "climate_profile": {
+        "climate_zone": "subtropical to temperate",
+        "migration_strategy": "sedentary",
+        "migration_score": null
+      },
+      "distribution": {
+        "country": "Nepal",
+        "provinces": [
+          "Bagmati","Gandaki","Karnali",
+          "Lumbini","Madhesh","Province 1","Sudurpaschim"
+        ],
+        "total_localities": 815,
+        "bounding_box": {
+          "lat_min": 26.4182,
+          "lat_max": 29.5142,
+          "lon_min": 80.1193,
+          "lon_max": 88.1837
+        }
+      },
+      "observation_stats": {
+        "total_sightings": 3033,
+        "total_individuals": 11632,
+        "unique_observers": 553,
+        "first_recorded": null,
+        "last_recorded": null
+      },
+      "physical": {
+        "body_mass_grams": 103.0,
+        "lifestyle": null
+      },
+      "source_file": "Streptopelia tranquebarica",
+      "confidence_score": 0.7151
+    },
+    {
+      "species_id": "Treron curvirostra",
+      "common_name": "Thick-billed Green Pigeon",
+      "family": "Columbidae",
+      "order": "Columbiformes",
+      "habitat_profile": {
+        "type_of_forest": "forest",
+        "habitat_density": {
+          "level": 2,
+          "label": "semi-open forest"
+        },
+        "tree_preference": null,
+        "environment_type": "arboreal",
+        "elevation_range": {
+          "min_m": null,
+          "max_m": null,
+          "note": "unknown"
+        }
+      },
+      "diet": {
+        "trophic_niche": "frugivore",
+        "primary_food": ["fruits", "berries"],
+        "feeding_style": "canopy foraging"
+      },
+      "seasonal_presence": {
+        "resident_type": "year-round",
+        "months_observed": [
+          "January","February","March","April","May","June",
+          "July","August","October","November","December"
+        ],
+        "peak_season": null
+      },
+      "climate_profile": {
+        "climate_zone": "subtropical",
+        "migration_strategy": "sedentary",
+        "migration_score": null
+      },
+      "distribution": {
+        "country": "Nepal",
+        "provinces": ["Bagmati","Lumbini","Province 1"],
+        "total_localities": 39,
+        "bounding_box": {
+          "lat_min": 26.6668,
+          "lat_max": 28.4623,
+          "lon_min": 81.2501,
+          "lon_max": 87.9597
+        }
+      },
+      "observation_stats": {
+        "total_sightings": 69,
+        "total_individuals": 343,
+        "unique_observers": null,
+        "first_recorded": null,
+        "last_recorded": null
+      },
+      "physical": {
+        "body_mass_grams": 134.5,
+        "lifestyle": "insessorial"
+      },
+      "source_file": "Treron curvirostra",
+      "confidence_score": 0.8409
+    }
+  ],
+  "summary": {
+    "total_species_found": 3,
+    "common_habitat": "woodland / semi-open forest",
+    "common_diet": ["seeds", "grains", "fruits"],
+    "common_season": "year-round resident",
+    "common_climate": "subtropical to temperate",
+    "density_range": {
+      "min_level": 2,
+      "max_level": 3,
+      "label": "semi-open to open habitats"
+    }
+  },
+  "json_repair_flags": {
+    "repaired": false,
+    "issues_found": [],
+    "strategy_used": null
+  }
+}

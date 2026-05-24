@@ -1,0 +1,39 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# artifacts
+*.mp3
+*.csv
+*.json
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE files
+.vscode/
+.idea/
+
+*.csv
+*.xlsx
+
+frontend/
+
+*.part
+.env
+
+__pycache__/
+*.pyc
+
+dataset/rag/faiss_store/
+
+app/scripts/0009156-260519110011954.csv5cp7tkp6.part

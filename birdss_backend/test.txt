@@ -1,0 +1,250 @@
+"""
+This module implements the relation extraction based on entities and context
+
+Currently, provider ollama serves better than groq or gliner.
+match_entity plays a cruical role in reliability
+"""
+
+from langchain_core.prompts import ChatPromptTemplate
+from json_repair import repair_json
+from gliner.multitask import GLiNERRelationExtractor
+from gliner import GLiNER
+from app.config import OLLAMA_HOST, GLINER_MODEL_LARGE
+
+
+import json
+from typing import cast, Union
+
+
+class Relation:
+    def __init__(
+        self,
+        _model: str = "llama-3.1-8b-instant",
+        provider: str = "ollama",
+        temperature: int = 0,
+        groq_max_retries: int = 2,
+        ollama_base_url: str = OLLAMA_HOST,
+        gliner_model: str = GLINER_MODEL_LARGE,
+    ):
+        self.provider = provider
+
+        # LLM (for JSON or relation words)
+        # if provider in {"groq", "ollama", "gliner"}:
+        self._load_ai(provider, _model, ollama_base_url, temperature, groq_max_retries)
+
+        # GLiNER (only needed for provider="gliner")
+        if provider == "gliner":
+            self.g_model = GLiNER.from_pretrained(gliner_model, map_location="cpu")
+
+            self.g_model.run = self.g_model.predict_entities  # type: ignore
+
+            self.relation_extractor = GLiNERRelationExtractor(
+                model=cast(GLiNER, self.g_model)
+            )
+
+            print(type(self.g_model), hasattr(self.g_model, "run"))
+
+        print(f"[INFO]: Using {provider} with model {_model}")
+
+    def _load_ai(
+        self,
+        provider: str,
+        _model: str,
+        ollama_base_url: str,
+        temperature: int,
+        groq_max_retries: int,
+    ):
+        if provider == "groq":
+            from langchain_groq import ChatGroq
+
+            self.llm = ChatGroq(
+                model=_model, temperature=temperature, max_retries=groq_max_retries
+            )
+        elif provider == "ollama" or provider == "gliner":
+            from langchain_ollama import ChatOllama
+
+            self.llm = ChatOllama(
+                model=_model,
+                base_url=ollama_base_url,
+                temperature=temperature,
+            )
+        else:
+            raise ValueError("provider must be 'groq' or 'ollama'")
+
+    def _prompt(self):
+        if self.provider == "gliner":
+            self.prompt = ChatPromptTemplate.from_messages(
+                [
+                    (
+                        "system",
+                        """You are a relation extractor.
+
+                    Extract relation words between the given entities from the text.
+
+                    Rules:
+                    - Return ONLY relation words/phrases (1–3 words)
+                    - Do NOT return entities
+                    - Do NOT return sentences
+                    - Remove duplicates
+                    - If none, return []
+
+                    Output format:
+                    ["relation1", "relation2"]
+
+                    Return ONLY the list. No explanation. No markdown.
+                    {warn}
+                    """,
+                    ),
+                    ("user", "Entities: {entities}\n\nText: {text}"),
+                ]
+            )
+
+        else:
+            self.prompt = ChatPromptTemplate.from_messages(
+                [
+                    (
+                        "system",
+                        """You are a relation extractor. Given text and a list of entities, 
+                    extract relationships ONLY between the provided entities.
+                    Return a JSON array (NOT a single object). Example:
+
+                    [
+                    {{"head": "gustave eiffel", "relation": "DESIGNED", "tail": "eiffel tower", "confidence": 0.95}},
+                    {{"head": "eiffel tower", "relation": "LOCATED_IN", "tail": "paris", "confidence": 0.99}}
+                    ]
+
+                    Only return the JSON array. No explanation. No extra text. Keep it in format.
+                    {warn}
+                    """,
+                    ),
+                    ("user", "Entities: {entities}\n\nText: {text}"),
+                ]
+            )
+
+    def _content_to_str(self, content) -> str:
+        if isinstance(content, list):
+            return " ".join(
+                part.get("text", "") if isinstance(part, dict) else str(part)
+                for part in content
+            ).strip()
+
+        return str(content).strip()
+
+    def _parse_json(self, content: Union[str, list]):
+        raw = self._content_to_str(content)
+
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+
+        repaired = repair_json(raw)
+        parsed = json.loads(repaired)
+        return parsed
+
+    def _parse_list(self, content: Union[str, list]) -> list[str]:
+        parsed = self._parse_json(content)
+        return parsed if isinstance(parsed, list) else []
+
+    def _parse_relations(self, content: Union[str, list]) -> list[dict]:
+        parsed = self._parse_json(content)
+        if isinstance(parsed, dict):
+            parsed = [parsed]
+        return parsed if isinstance(parsed, list) else []
+
+    def find_relation(self, text, entities, tries=0, e: str = ""):
+        entity_names = [e["name"] for e in entities]
+        self._prompt()
+        chain = self.prompt | self.llm
+
+        try:
+            if self.provider == "gliner":
+                res = chain.invoke(
+                    {
+                        "entities": entity_names,
+                        "text": text,
+                        "warn": f"Got this error last time: {e}"
+                        if e
+                        else "Do not hallucinate",
+                    }
+                )
+                print("Response", res.content)
+                relation_labels = self._parse_list(res.content)
+
+                if not relation_labels:
+                    return []
+
+                labels = [e["label"] for e in entities]
+
+                preds = self.relation_extractor(
+                    text,
+                    entities=labels,
+                    relations=relation_labels,
+                    rel_threshold=0.5,
+                )
+
+                results = []
+
+                for rel in preds[0]:
+                    results.append(
+                        {
+                            "head": rel["source"],
+                            "relation": rel["relation"].upper(),
+                            "tail": rel["target"],
+                            "confidence": rel["score"],
+                        }
+                    )
+                print("Found relation: -> ", results)
+                return results
+
+            else:
+                res = chain.invoke(
+                    {
+                        "entities": entity_names,
+                        "text": text,
+                        "warn": f"Got this error last time: {e}"
+                        if e
+                        else "Do not hallucinate",
+                    }
+                )
+
+                parsed = self._parse_relations(res.content)
+
+                print("Found parsed from llm", parsed)
+
+                import difflib
+
+                def match_entity(name):
+                    if not name:
+                        return name
+                    if name in entity_names:
+                        return name
+                    name_lower = name.lower()
+                    for e in entity_names:
+                        if e.lower() == name_lower:
+                            return e
+                    matches = difflib.get_close_matches(
+                        name, entity_names, n=1, cutoff=0.7
+                    )
+                    if matches:
+                        return matches[0]
+                    for e in entity_names:
+                        if name_lower in e.lower() or e.lower() in name_lower:
+                            return e
+                    return name
+
+                valid_relations = []
+                for r in parsed:
+                    if r.get("confidence", 0) >= 0.5:
+                        r["head"] = match_entity(r.get("head"))
+                        r["tail"] = match_entity(r.get("tail"))
+                        valid_relations.append(r)
+
+                return valid_relations
+
+        except Exception as _e:
+            print(f"[WARN] relation extraction failed: {_e}")
+            if tries < 2:
+                return self.find_relation(text, entities, tries + 1, str(_e))
+
+            return []

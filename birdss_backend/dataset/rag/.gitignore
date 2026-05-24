@@ -1,0 +1,11 @@
+# Ignore dataset files and temporary outputs
+*.csv
+*.xlsx
+
+*.txt
+
+requirements*.txt
+
+.venv/
+__pycache__/
+*.py[cod]
