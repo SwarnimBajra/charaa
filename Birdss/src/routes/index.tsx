@@ -228,6 +228,7 @@ function Index() {
           forest_dependency: 0,
           rarity_score: 0,
           composite_health: { score: 0, label: "Unknown" },
+          model_prediction: { predicted_fhi: null, available: false },
         };
 
         setEcoMetrics(resolvedMetrics);

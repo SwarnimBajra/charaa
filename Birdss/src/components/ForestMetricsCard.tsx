@@ -18,6 +18,11 @@ function pct(value: number) {
 export function ForestMetricsCard({ metrics }: { metrics: ForestMetrics }) {
   const compositeLabel = metrics.composite_health.label || "Unknown";
   const compositePct = pct(metrics.composite_health.score);
+  const heuristicPct = compositePct;
+  const modelPct =
+    metrics.model_prediction?.available && metrics.model_prediction.predicted_fhi != null
+      ? pct(metrics.model_prediction.predicted_fhi)
+      : null;
 
   const subMetrics: Array<{
     icon: React.ComponentType<{ className?: string }>;
@@ -78,6 +83,14 @@ export function ForestMetricsCard({ metrics }: { metrics: ForestMetrics }) {
           <h3 className="font-display text-2xl mt-1">Metrics breakdown</h3>
           <p className="text-sm text-muted-foreground">
             Computed from detected species via the backend `/forest` endpoint. The composite index ({compositePct}/100) is shown in the verdict below.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Heuristic FHI: <span className="font-semibold text-foreground">{heuristicPct}/100</span>
+            {" · "}
+            Model FHI:{" "}
+            <span className="font-semibold text-foreground">
+              {modelPct !== null ? `${modelPct}/100` : "Not available"}
+            </span>
           </p>
         </div>
         <span

@@ -111,6 +111,10 @@ export function ForestHealthVerdict({ analysis, metrics, loading, error }: Props
   if (!metrics) return null;
 
   const compositePct = Math.round(Math.max(0, Math.min(1, metrics.composite_health.score)) * 100);
+  const modelPct =
+    metrics.model_prediction?.available && metrics.model_prediction.predicted_fhi != null
+      ? Math.round(Math.max(0, Math.min(1, metrics.model_prediction.predicted_fhi)) * 100)
+      : null;
   const label = assessment?.health_label || metrics.composite_health.label || "Unknown";
   const verdictText = assessment?.verdict || fallbackVerdict(metrics);
   const ecologyType = assessment?.ecology_type || "";
@@ -152,6 +156,11 @@ export function ForestHealthVerdict({ analysis, metrics, loading, error }: Props
               <span className="font-display text-6xl font-light tabular-nums">{compositePct}</span>
               <span className="text-xl opacity-60">/100</span>
             </div>
+            <p className="mt-2 text-xs opacity-90">
+              Heuristic: {compositePct}/100
+              {" · "}
+              Model: {modelPct !== null ? `${modelPct}/100` : "Not available"}
+            </p>
             {ecologyType && (
               <p className="mt-2 text-sm opacity-90">
                 <Layers className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />

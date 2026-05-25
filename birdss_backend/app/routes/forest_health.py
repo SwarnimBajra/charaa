@@ -1,5 +1,6 @@
 from . import router
 from app.utils import preprocess_species, merge_species, Species
+from app.utils.fhi_predictor import predict as predict_fhi
 from app.scripts.native import calculate_native_score
 from app.scripts.forest_dependency import BirdTraitDB
 from app.scripts.rarity import RarityScorer
@@ -376,6 +377,7 @@ async def forest(req: ForestRequest):
         + 0.10 * rarity_val
     )
     composite_health = round(min(max(composite_health, 0.0), 1.0), 4)
+    predicted_fhi = predict_fhi(merged, bird_trait_db)
 
     # Health classification
     if composite_health >= 0.75:
@@ -401,6 +403,11 @@ async def forest(req: ForestRequest):
                 "forest_dependency": 0.20,
                 "rarity": 0.10,
             },
+        },
+        "model_prediction": {
+            "predicted_fhi": predicted_fhi,
+            "available": predicted_fhi is not None,
+            "model_file": "app/scripts/fhi_model.pkl",
         },
         "unique_species": unique_species,
         "shannon_idx": shannon_idx,

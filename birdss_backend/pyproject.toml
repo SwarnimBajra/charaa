@@ -10,6 +10,9 @@ dependencies = [
     "gdown>=6.0.0",
     "geopy>=2.4.1",
     "httpx>=0.28.1",
+    "numpy>=2.3.0",
+    "pandas>=2.3.0",
+    "scikit-learn>=1.7.0",
 ]
 
 [project.optional-dependencies]

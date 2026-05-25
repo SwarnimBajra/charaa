@@ -14,6 +14,11 @@ export interface ForestMetrics {
     score: number;
     label: string;
   };
+  model_prediction?: {
+    predicted_fhi: number | null;
+    available: boolean;
+    model_file?: string;
+  };
 }
 
 const BASE_URL = import.meta.env.VITE_BIRD_API_URL ?? "";
@@ -69,5 +74,9 @@ export async function fetchForestMetrics(loc: string, result: AnalyzeResult): Pr
     forest_dependency: data.forest_dependency ?? 0,
     rarity_score: data.rarity_score ?? 0,
     composite_health: data.composite_health ?? { score: 0, label: "Unknown" },
+    model_prediction: data.model_prediction ?? {
+      predicted_fhi: null,
+      available: false,
+    },
   };
 }
