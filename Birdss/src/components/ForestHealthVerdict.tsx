@@ -1,6 +1,8 @@
-import { AlertTriangle, CheckCircle2, Loader2, Trees, Utensils, Layers, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, Trees, Utensils, Layers, Sparkles } from "lucide-react";
 import type { ForestMetrics } from "@/lib/forestApi";
 import { cn } from "@/lib/utils";
+import { fetchBestWikiInfo, type WikiInfo } from "@/lib/wikiThumbnail";
 
 interface ForestHealthAssessment {
   health_label: string;
@@ -133,7 +135,7 @@ export function ForestHealthVerdict({ analysis, metrics, loading, error }: Props
         </div>
         <span
           className={cn(
-            "text-xs px-3 py-1 rounded-full border whitespace-nowrap",
+            "text-lg md:text-xl font-display font-bold uppercase tracking-wider px-5 py-2.5 md:px-6 md:py-3 rounded-2xl border-2 whitespace-nowrap shadow-md",
             labelTone[label] ?? labelTone.Unknown,
           )}
         >
@@ -161,21 +163,18 @@ export function ForestHealthVerdict({ analysis, metrics, loading, error }: Props
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="space-y-4">
         <div className="rounded-2xl border border-border bg-secondary/10 p-4 space-y-3">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Trees className="h-4 w-4 text-emerald-600" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Trees expected in this forest</span>
           </div>
           {trees.length > 0 ? (
-            <ul className="space-y-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {trees.map((t) => (
-                <li key={t} className="text-sm leading-snug flex items-start gap-2">
-                  <span className="mt-1.5 h-1 w-1 rounded-full bg-emerald-600 shrink-0" />
-                  <span>{t}</span>
-                </li>
+                <WikiImageCard key={t} label={t} accent="emerald" fallbackIcon="tree" />
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="text-xs text-muted-foreground italic">
               No tree suggestions available — try a sample with more species.
@@ -189,14 +188,11 @@ export function ForestHealthVerdict({ analysis, metrics, loading, error }: Props
             <span className="text-[10px] font-bold uppercase tracking-wider">Food sources the birds need</span>
           </div>
           {food.length > 0 ? (
-            <ul className="space-y-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {food.map((f) => (
-                <li key={f} className="text-sm leading-snug flex items-start gap-2">
-                  <span className="mt-1.5 h-1 w-1 rounded-full bg-amber-bird shrink-0" />
-                  <span>{f}</span>
-                </li>
+                <WikiImageCard key={f} label={f} accent="amber" fallbackIcon="food" />
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="text-xs text-muted-foreground italic">
               No food data available — try a sample with more species.
@@ -205,6 +201,7 @@ export function ForestHealthVerdict({ analysis, metrics, loading, error }: Props
         </div>
       </div>
 
+      {/* strengths & concerns below */}
       {(strengths.length > 0 || concerns.length > 0) && (
         <div className="grid md:grid-cols-2 gap-4">
           {strengths.length > 0 && (
@@ -243,5 +240,79 @@ export function ForestHealthVerdict({ analysis, metrics, loading, error }: Props
         </div>
       )}
     </div>
+  );
+}
+
+interface WikiImageCardProps {
+  label: string;
+  accent: "emerald" | "amber";
+  fallbackIcon: "tree" | "food";
+}
+
+function WikiImageCard({ label, accent, fallbackIcon }: WikiImageCardProps) {
+  const [info, setInfo] = useState<WikiInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchBestWikiInfo(label).then((res) => {
+      if (!cancelled) {
+        setInfo(res);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [label]);
+
+  const FallbackIcon = fallbackIcon === "tree" ? Trees : Utensils;
+  const accentClasses =
+    accent === "emerald"
+      ? "from-emerald-500/20 to-green-500/10 text-emerald-700"
+      : "from-amber-500/20 to-orange-400/10 text-amber-700";
+
+  const card = (
+    <div className="group rounded-xl overflow-hidden border border-border bg-background hover:shadow-soft hover:-translate-y-0.5 transition-all duration-300 h-full flex flex-col">
+      <div className={cn("aspect-[4/3] bg-gradient-to-br relative overflow-hidden", accentClasses)}>
+        {loading ? (
+          <div className="absolute inset-0 animate-pulse bg-muted/40" />
+        ) : info?.thumb ? (
+          <img
+            src={info.thumb}
+            alt={label}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <FallbackIcon className="h-10 w-10 opacity-40" />
+          </div>
+        )}
+        {info?.url && (
+          <span className="absolute top-1.5 right-1.5 rounded-full bg-black/40 backdrop-blur-sm p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+            <ExternalLink className="h-3 w-3" />
+          </span>
+        )}
+      </div>
+      <div className="p-2 flex-1 flex items-center">
+        <p className="text-xs font-medium leading-tight line-clamp-2">{label}</p>
+      </div>
+    </div>
+  );
+
+  return info?.url ? (
+    <a
+      href={info.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block"
+      aria-label={`Open Wikipedia article for ${label}`}
+    >
+      {card}
+    </a>
+  ) : (
+    card
   );
 }

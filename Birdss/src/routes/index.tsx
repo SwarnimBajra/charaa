@@ -300,9 +300,11 @@ function Index() {
         />
         <div className="absolute inset-0 bg-gradient-canopy" />
         <div className="relative max-w-6xl mx-auto px-6 pt-12 pb-20 text-primary-foreground">
-          <div className="flex items-center gap-2 text-sm tracking-widest uppercase opacity-80">
-            <Leaf className="h-4 w-4" />
-            MockingBird
+          <div className="inline-flex items-center gap-3 text-3xl md:text-5xl font-display font-bold tracking-wide rounded-full bg-white/10 backdrop-blur-sm border border-white/20 px-5 py-2 md:px-7 md:py-3 shadow-lg">
+            <Leaf className="h-8 w-8 md:h-10 md:w-10 text-accent" />
+            <span className="bg-gradient-to-r from-white to-accent bg-clip-text text-transparent">
+              MockingBird
+            </span>
           </div>
           <h1 className="font-display text-5xl md:text-7xl mt-4 max-w-3xl text-balance">
             Hear the forest. <em className="not-italic text-accent">Read its health.</em>
@@ -416,17 +418,10 @@ function Index() {
 
         {result && (
           <div id="results" className="mt-10 space-y-6">
-            {(ecoMetrics || ecoLoading) && (
-              <ForestHealthVerdict
-                analysis={ecoAnalysis}
-                metrics={ecoMetrics}
-                loading={ecoLoading}
-                error={ecoError}
-              />
-            )}
-
+            {/* 1. What we heard — detected species first (observation) */}
             <BirdSpeciesGallery species={result.speciesDetected} />
 
+            {/* 2. What we calculated — quantitative ecological metrics */}
             {metricsLoading ? (
               <div className="rounded-3xl bg-card border border-border p-6 shadow-soft flex items-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -436,7 +431,18 @@ function Index() {
               <ForestMetricsCard metrics={ecoMetrics} />
             ) : null}
 
+            {/* 3. What it means — ecological context from RAG + LLM */}
             <EcologicalAnalysisPanel analysis={ecoAnalysis} loading={ecoLoading} error={ecoError} />
+
+            {/* 4. Bottom line — final verdict last, the climax of the page */}
+            {(ecoMetrics || ecoLoading) && (
+              <ForestHealthVerdict
+                analysis={ecoAnalysis}
+                metrics={ecoMetrics}
+                loading={ecoLoading}
+                error={ecoError}
+              />
+            )}
           </div>
         )}
       </section>

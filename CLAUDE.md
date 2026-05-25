@@ -18,7 +18,7 @@ FastAPI bird-ID backend (`birdss_backend/`) plus a Vite frontend. This Mac **can
 | Remote repo path | `C:\Users\Swarnim Bajracharya\eco\birdss_backend` |
 | Path format for scp/SFTP | `/C:/Users/SWARNI~1/eco/birdss_backend` (capital C+colon; 8.3 short name for the space) |
 | Path format for PowerShell | `C:\Users\SWARNI~1\eco\birdss_backend` (backslashes; 8.3 short name) |
-| Start command | `uv run uvicorn app:app --reload --host 0.0.0.0 --port 8000` |
+| Start command | `uv run uvicorn app:app --reload --reload-dir app --host 0.0.0.0 --port 8000` |
 | API URL | http://192.168.76.104:8000 (Swagger at `/docs`) |
 
 **SSH into the box:** `sshpass -f ~/.ssh/winbackend-pass ssh winbackend`
@@ -97,15 +97,17 @@ sshpass -f ~/.ssh/winbackend-pass ssh winbackend "powershell -NoProfile -Command
 
 From `birdss_backend/`:
 ```bash
-uv run uvicorn app:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn app:app --reload --reload-dir app --host 0.0.0.0 --port 8000
 ```
 
 `--host 0.0.0.0` is required so the Mac can reach it across the LAN.
 
 Optional RAG service (separate terminal, port 8005):
 ```bash
-cd dataset/rag && uv run uvicorn app:app --reload --port 8005
+cd dataset/rag && uv run uvicorn app:app --reload --reload-dir . --host 127.0.0.1 --port 8005
 ```
+
+> **Why `--reload-dir`?** On Windows, watchfiles will otherwise also watch `.venv/` and `dataset/`. Background activity in those folders (uv installs, log writes, model cache writes) triggers reloads mid-request. Worst case: BirdNET's multiprocessing children get a `KeyboardInterrupt`, the audio analysis aborts, and `/analyze-audio` returns 500. Always restrict the reload watcher.
 
 ## Frontend
 

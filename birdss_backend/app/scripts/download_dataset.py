@@ -5,6 +5,15 @@ download_dataset.py
 import os
 import sys
 
+# Windows default stdout codec is cp1252, which can't encode characters like
+# →, ✓, ✗ used in our progress prints below. Force UTF-8 so this script runs
+# under any Python without crashing when piped/captured by another process
+# (forest_health.py subprocess-runs us and turns our crash into an HTTP 500).
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 # config
 FILE_ID = "1E7GnLMy8IznJ2Avq06ni1jjIrCkhUJW_"
 FILE_NAME = "0009156-260519110011954.csv"

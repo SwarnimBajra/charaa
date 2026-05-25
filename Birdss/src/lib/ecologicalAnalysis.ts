@@ -79,11 +79,22 @@ function repairAndParse(raw: string): { parsed: Record<string, unknown> | null; 
 
 export async function generateEcologicalAnalysis(input: EcologicalAnalysisInput): Promise<string | null> {
   if (!GROQ_API_KEY) {
-    console.warn("GROQ_API_KEY is not configured.");
-    return null;
+    throw new Error("VITE_GROQ_API_KEY is not set — ecological analysis cannot be generated. Add it to Birdss/.env and restart the dev server.");
   }
 
-  const chunkText = JSON.stringify(input.retrievedChunks, null, 2);
+  // Groq free tier caps at 6000 tokens/minute. Full RAG chunks (index, distance, full text)
+  // blow past that quickly with >3 species. Trim to the essentials: top 2 chunks per species,
+  // only the `text` field, truncated to ~280 chars. Keeps signal, drops noise.
+  const MAX_CHUNKS_PER_SPECIES = 2;
+  const MAX_CHARS_PER_CHUNK = 280;
+  const trimmedChunks = input.retrievedChunks.map(({ species, chunks }) => ({
+    species,
+    chunks: chunks.slice(0, MAX_CHUNKS_PER_SPECIES).map((c) => {
+      const raw = typeof (c as any).text === "string" ? (c as any).text : JSON.stringify(c);
+      return raw.length > MAX_CHARS_PER_CHUNK ? raw.slice(0, MAX_CHARS_PER_CHUNK) + "…" : raw;
+    }),
+  }));
+  const chunkText = JSON.stringify(trimmedChunks, null, 2);
 
   const systemPrompt = `You are an expert ecological analysis assistant specializing in Nepalese bird biodiversity and forest ecosystem health.
 Your task is to analyze the observed species, computed ecological metrics, and RAG-retrieved ecological knowledge, then compile a highly detailed, structured analysis.
@@ -230,7 +241,8 @@ ${chunkText}
     if (!res.ok) {
       const errText = await res.text();
       console.error("Groq API error:", errText);
-      return null;
+      // Surface the actual Groq error so the EcologicalAnalysisPanel can display it instead of "No analysis available".
+      throw new Error(`Groq ${res.status}: ${errText.slice(0, 300)}`);
     }
 
     const data = (await res.json()) as {
@@ -238,7 +250,9 @@ ${chunkText}
     };
 
     const answer = data.choices?.[0]?.message?.content?.trim();
-    if (!answer) return null;
+    if (!answer) {
+      throw new Error("Groq returned an empty response (no message content). Likely token limit or model issue.");
+    }
 
     // Multi-strategy repair pipeline
     const { parsed, repaired, issues } = repairAndParse(answer);
@@ -260,6 +274,7 @@ ${chunkText}
     return answer;
   } catch (error) {
     console.error("Failed to call Groq API:", error);
-    return null;
+    // Re-throw so the UI surfaces the actual reason instead of a silent "No analysis available".
+    throw error;
   }
 }

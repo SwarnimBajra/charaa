@@ -3,8 +3,10 @@
 Run
 
 ```
-uv run uvicorn app:app --reload
+uv run uvicorn app:app --reload --reload-dir app
 ```
+
+> `--reload-dir app` is important on Windows: without it, watchfiles also watches `.venv/` and `dataset/`, and any change there (background `uv` activity, log writes) interrupts BirdNET's multiprocessing children mid-inference, causing `/analyze-audio` to return 500 with "Analysis was cancelled".
 
 Note: For WEBM/M4A uploads, install ffmpeg so the backend can convert to WAV.
 

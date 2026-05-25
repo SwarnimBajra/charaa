@@ -75,9 +75,9 @@ export function ForestMetricsCard({ metrics }: { metrics: ForestMetrics }) {
           <p className="text-xs uppercase tracking-widest text-muted-foreground">
             Forest health metrics
           </p>
-          <h3 className="font-display text-2xl mt-1">Composite ecological index</h3>
+          <h3 className="font-display text-2xl mt-1">Metrics breakdown</h3>
           <p className="text-sm text-muted-foreground">
-            Computed from detected species via the backend `/forest` endpoint
+            Computed from detected species via the backend `/forest` endpoint. The composite index ({compositePct}/100) is shown in the verdict below.
           </p>
         </div>
         <span
@@ -88,17 +88,6 @@ export function ForestMetricsCard({ metrics }: { metrics: ForestMetrics }) {
         >
           {compositeLabel}
         </span>
-      </div>
-
-      <div className="rounded-2xl bg-gradient-forest text-primary-foreground p-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_20%,white,transparent_50%)]" />
-        <div className="relative flex items-baseline gap-3">
-          <span className="font-display text-6xl font-light tabular-nums">{compositePct}</span>
-          <span className="text-2xl opacity-60">/100</span>
-        </div>
-        <p className="relative mt-1 text-sm opacity-80">
-          Composite score: {metrics.composite_health.score.toFixed(4)}
-        </p>
       </div>
 
       {metrics.unique_species <= 2 && (
