@@ -9,6 +9,7 @@ import ollama
 # Import your core RAG architecture
 from core.embedding import EmbeddingPipeline
 from core.vector_store import VectorStore
+from core.structured_facts import BirdFuncDatLookup, build_facts_block
 
 class SimpleDocument:
     def __init__(self, page_content: str, metadata: dict):
@@ -20,6 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 FAISS_DIR = BASE_DIR / "faiss_store"
 GBIF_CSV = BASE_DIR / "0009155-260519110011954.csv"
+BIRDFUNCDAT = BASE_DIR.parent.parent / "app" / "scripts" / "BirdFuncDat.txt"
 
 excel_file = DATA_DIR / "AVONET Supplementary dataset 1.xlsx"
 if not excel_file.exists():
@@ -37,6 +39,17 @@ embd_pipeline = EmbeddingPipeline(
     chunk_size=256,
     chunk_overlap=30,
 )
+
+# Load EltonTraits for deterministic forest-stratum / diet enrichment.
+funcdat = None
+if BIRDFUNCDAT.exists():
+    try:
+        funcdat = BirdFuncDatLookup(str(BIRDFUNCDAT))
+        print(f" -> Loaded BirdFuncDat with {len(funcdat.species)} species for structured-facts enrichment.")
+    except Exception as e:
+        print(f" -> Warning: failed to load BirdFuncDat ({e}); structured facts will be skipped.")
+else:
+    print(f" -> BirdFuncDat not found at {BIRDFUNCDAT}; structured facts will be skipped.")
 
 vector_store = VectorStore(
     model=embd_pipeline.embedding_model(),
@@ -262,10 +275,10 @@ for i, (_, row) in enumerate(species_to_process.iterrows(), 1):
 
     # The prompt explicitly utilizes the coordinate bounds, observers, and record basis
     prompt = f"""
-You are an expert ornithologist specialized in Nepalese birds. 
+You are an expert ornithologist specialized in Nepalese birds.
 Write a highly detailed, comprehensive, and cohesive narrative-style ecological and observational profile for the bird "{english_name}" ({species_name}).
 
-You must incorporate EVERY single feature and statistic from the two datasets below into a natural, flowing paragraph narrative. Do not summarize or omit any numbers, names, or metrics:
+You must incorporate EVERY single feature and statistic from the two datasets below into a natural, flowing paragraph narrative. Do not summarize or omit any numbers, names, or metrics. Use explicit, retrieval-friendly habitat vocabulary where the data supports it (e.g. "dense forest interior", "closed canopy", "forest edge", "scrubland", "open grassland", "wetland", "canopy specialist", "understory forager", "ground forager", "frugivore", "nectarivore", "insectivore", "year-round resident", "long-distance migrant"). Pick the terms that match the codes — do NOT invent new habitat types.
 
 1. Real-world observation data in Nepal (from GBIF/eBird):
 - Total Sightings in Nepal: {row['observation_count']}
@@ -284,13 +297,12 @@ You must incorporate EVERY single feature and statistic from the two datasets be
 - Trophic Niche: {trophic_niche}
 - Trophic Level: {trophic_level}
 - Habitat: {habitat}
-- Habitat Density: {habitat_density} (1=dense forest, 2=semi-open, 3=open)
-- Migration Strategy: {migration} (1=sedentary, 2=partial, 3=full migrant)
+- Habitat Density: {habitat_density} (1=dense forest interior, 2=semi-open mosaic / forest edge, 3=open habitat)
+- Migration Strategy: {migration} (1=sedentary year-round resident, 2=partial migrant, 3=full long-distance migrant)
 - Primary Lifestyle: {lifestyle}
 - Body Mass: {body_mass}g
 
-Structure the response as a title followed by 2 or 3 dense, continuous paragraphs. 
-Ensure all the scientific metrics are preserved. Do not add conversational intro/outro text.
+Write 2 or 3 dense, continuous paragraphs. Do NOT include a title line, do NOT add conversational intro/outro text, and start your response directly with the first sentence of the narrative.
 """
 
     start_time = time.time()
@@ -299,28 +311,53 @@ Ensure all the scientific metrics are preserved. Do not add conversational intro
             model="huihui_ai/qwen2.5-abliterate:7b",
             messages=[
                 {
-                    "role": "system", 
-                    "content": "You are a precise scientific database generator. Do not include any introductory remarks, greetings, conversational text, or polite summaries (e.g. do not say 'Here is the profile'). Start your response directly with the title '# Species Profile:' and write only the narrative paragraphs requested."
+                    "role": "system",
+                    "content": "You are a precise scientific database generator. Do not include any introductory remarks, greetings, conversational text, polite summaries, or title lines. Start your response directly with the first sentence of the narrative paragraphs requested."
                 },
                 {
-                    "role": "user", 
+                    "role": "user",
                     "content": prompt
                 }
             ],
             options={"temperature": 0.1}
         )
         response_text = response['message']['content'].strip()
-        
-        # PYTHON POST-PROCESSING: 100% Foolproof Clean
-        if "#" in response_text:
-            response_text = response_text[response_text.find("#"):]
-            
+
+        # Strip any markdown title the model still emits — title-only
+        # chunks rank well on species-name queries but carry no info.
+        cleaned_lines: list[str] = []
+        for line in response_text.splitlines():
+            if not cleaned_lines and line.strip().startswith("#"):
+                continue
+            cleaned_lines.append(line)
+        response_text = "\n".join(cleaned_lines).strip()
+
+        # Deterministic structured-facts block from BirdFuncDat + AVONET.
+        funcdat_row = funcdat.get(species_name) if funcdat else None
+        avonet_for_facts = {
+            "Habitat": habitat if habitat != "Unknown" else None,
+            "Habitat.Density": habitat_density if isinstance(habitat_density, (int, float)) else None,
+            "Trophic.Niche": trophic_niche if trophic_niche != "Unknown" else None,
+            "Trophic.Level": trophic_level if trophic_level != "Unknown" else None,
+            "Migration": migration if isinstance(migration, (int, float)) else None,
+            "Primary.Lifestyle": lifestyle if lifestyle != "Unknown" else None,
+            "Mass": body_mass if isinstance(body_mass, (int, float)) else None,
+        }
+        facts = build_facts_block(
+            scientific_name=species_name,
+            english_name=english_name,
+            funcdat_row=funcdat_row,
+            avonet=avonet_for_facts,
+        )
+        if facts:
+            response_text = f"{response_text}\n\n{facts}"
+
         # TERMINAL PREVIEW: Shows first 250 characters of the paragraph
         print("-" * 65)
         print(f"GENERATED NARRATIVE PREVIEW FOR {english_name.upper()}:")
         print(response_text[:250] + "...")
         print("-" * 65)
-        
+
         # Convert raw string into a SimpleDocument chunk
         doc = SimpleDocument(
             page_content=response_text,

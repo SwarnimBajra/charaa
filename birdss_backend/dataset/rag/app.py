@@ -47,8 +47,8 @@ async def lifespan(app: FastAPI):
     print("[RAG] Initializing local embedding pipeline...")
     embd_pipeline = EmbeddingPipeline(
         model_name="all-MiniLM-L6-v2",
-        chunk_size=400,  # Adjusted chunk size to keep continuous narratives intact
-        chunk_overlap=40,
+        chunk_size=256,
+        chunk_overlap=30,
     )
 
     print("[RAG] Initializing vector store...")
